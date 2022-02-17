@@ -5,7 +5,7 @@ const { auth } = require("./scriptUtils");
 
 const conn = auth();
 const OBJECTS_TO_EXPORT = ["Account", "Contact"];
-const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 1000;
+const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const resultsDirectory = "results";
 
 const getRecords = async (object) => {
