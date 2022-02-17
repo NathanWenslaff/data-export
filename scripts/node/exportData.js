@@ -3,10 +3,10 @@
 const fs = require("fs");
 const { auth } = require("./scriptUtils");
 
-const conn = auth();
+const CONNECTION = auth();
 const OBJECTS_TO_EXPORT = ["Account", "Contact"];
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
-const resultsDirectory = "results";
+const RESULTS_DIRECTORY = "results";
 
 const getRecords = async (object) => {
   console.log(`Started querying for ${object} records...`);
@@ -15,8 +15,7 @@ const getRecords = async (object) => {
   let offset = 0;
 
   while (true) {
-    const records = await conn
-      .sobject(object)
+    const records = await CONNECTION.sobject(object)
       .find()
       .limit(MAX_RECORDS_IN_SINGLE_SOQL_QUERY)
       .skip(offset)
@@ -36,14 +35,18 @@ const getRecords = async (object) => {
   return result;
 };
 
-const getCSV = async (object) => {
+const generateCSV = async (object) => {
+  console.log(`Started generating CSV for ${object} table...`);
+
   const records = await getRecords(object);
+
+  console.log(`Found a total of ${records.length} ${object} records...`);
 
   if (records.length > 0) {
     const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
     const csvWriter = createCsvWriter({
-      path: `./${resultsDirectory}/${object}.csv`,
+      path: `./${RESULTS_DIRECTORY}/${object}.csv`,
       header: Object.keys(records[0])
         .filter((key) => {
           return key !== "attributes";
@@ -56,17 +59,19 @@ const getCSV = async (object) => {
         })
     });
 
-    if (!fs.existsSync(resultsDirectory)) {
-      fs.mkdirSync(resultsDirectory, { recursive: true });
+    if (!fs.existsSync(RESULTS_DIRECTORY)) {
+      fs.mkdirSync(RESULTS_DIRECTORY, { recursive: true });
     }
 
     await csvWriter.writeRecords(records);
+
+    console.log(`Finished generating CSV for ${object} object...`);
   }
 };
 
 const execute = async () => {
   for (const object of OBJECTS_TO_EXPORT) {
-    await getCSV(object);
+    await generateCSV(object);
   }
 };
 
