@@ -1,0 +1,75 @@
+{
+    "extends": ["@salesforce/eslint-config-lwc/recommended", "airbnb/base"],
+    "rules": {
+        "arrow-parens": ["error", "always"],
+        "class-methods-use-this": "off",
+        "implicit-arrow-linebreak": "off",
+        "indent": "off",
+        "lines-between-class-members": "off",
+        "max-len": "off",
+        "operator-linebreak": [
+            "error",
+            "before",
+            {
+                "overrides": {
+                    "=": "after",
+                    "&&": "after",
+                    "||": "after"
+                }
+            }
+        ],
+        "no-param-reassign": [
+            2,
+            {
+                "props": false
+            }
+        ],
+        "no-underscore-dangle": [
+            "error",
+            {
+                "allowAfterThis": true
+            }
+        ],
+        "no-unused-vars": [
+            "error",
+            {
+                "vars": "all",
+                "args": "after-used",
+                "ignoreRestSiblings": true
+            }
+        ],
+        "object-curly-newline": [
+            "error",
+            {
+                "ImportDeclaration": "never"
+            }
+        ],
+        "prefer-destructuring": [
+            "error",
+            {
+                "VariableDeclarator": {
+                    "array": true,
+                    "object": true
+                },
+                "AssignmentExpression": {
+                    "array": false,
+                    "object": false
+                }
+            },
+            {
+                "enforceForRenamedProperties": false
+            }
+        ],
+
+        "import/no-unresolved": [
+            "error",
+            {
+                "ignore": ["lwc*", "lightning*", "@salesforce*", "c*"]
+            }
+        ],
+        "import/no-extraneous-dependencies": ["off"],
+        "import/prefer-default-export": ["off"],
+
+        "@lwc/lwc/no-async-operation": ["off"]
+    }
+}
