@@ -2,9 +2,24 @@
 
 const fs = require("fs");
 const { auth } = require("./scriptUtils");
+const path = require("path");
 
 const CONNECTION = auth();
-const OBJECTS_TO_EXPORT = ["Account", "Contact"];
+const OBJECTS_TO_EXPORT = [
+  "Account",
+  "Contact",
+  "WeGather__Batch__c",
+  "WeGather__Fee2__c",
+  "WeGather__Financial_Account__c",
+  "WeGather__Fund__c",
+  "WeGather__Payment_Method__c",
+  "WeGather__Pledge__c",
+  "WeGather__Recurring_Payment__c",
+  "WeGather__Schedule__c",
+  "WeGather__Schedule_Line_Item__c",
+  "WeGather__Schedule_Skip_Date__c",
+  "WeGather__Transaction__c"
+];
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
 
@@ -69,7 +84,27 @@ const generateCSV = async (object) => {
   }
 };
 
+const emptyDirectory = () => {
+  console.log("Deleting old CSV files...");
+
+  fs.readdir(RESULTS_DIRECTORY, (err, files) => {
+    if (err) {
+      throw err;
+    }
+
+    for (const file of files) {
+      fs.unlink(path.join(RESULTS_DIRECTORY, file), (err) => {
+        if (err) {
+          throw err;
+        }
+      });
+    }
+  });
+};
+
 const execute = async () => {
+  emptyDirectory();
+
   for (const object of OBJECTS_TO_EXPORT) {
     await generateCSV(object);
   }
