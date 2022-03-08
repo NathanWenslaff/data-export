@@ -73,10 +73,9 @@ const WESHARE_ORG_IDS = [
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
 
-const getRecords = async (object) => {
+const getRecords = async (connection, object) => {
   console.log(`Started querying for ${object} records...`);
 
-  const connection = auth();
   const result = [];
   let offset = 0;
 
@@ -102,10 +101,10 @@ const getRecords = async (object) => {
   return result;
 };
 
-const generateCSV = async (alias, object) => {
+const generateCSV = async (alias, connection, object) => {
   console.log(`Started generating CSV for ${object} table...`);
 
-  const records = await getRecords(object);
+  const records = await getRecords(connection, object);
 
   console.log(`Found a total of ${records.length} ${object} records...`);
 
@@ -166,9 +165,13 @@ const execute = async () => {
   for (const alias of WESHARE_ORG_IDS) {
     setDefaultOrg(alias);
 
-    for (const object of OBJECTS_TO_EXPORT) {
-      await generateCSV(alias, object);
-    }
+    const connection = auth(alias);
+
+    await Promise.all(
+      OBJECTS_TO_EXPORT.map((object) => {
+        return generateCSV(alias, connection, object);
+      })
+    );
   }
 };
 
