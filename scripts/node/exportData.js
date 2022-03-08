@@ -1,11 +1,11 @@
 // npm run export:data
 
 const fs = require("fs");
-const { auth } = require("./scriptUtils");
+const { auth, executeScript } = require("./scriptUtils");
 const path = require("path");
 
-const CONNECTION = auth();
 const OBJECTS_TO_EXPORT = [
+  "Organization",
   "Account",
   "Contact",
   "WeGather__Batch__c",
@@ -20,17 +20,51 @@ const OBJECTS_TO_EXPORT = [
   "WeGather__Schedule_Skip_Date__c",
   "WeGather__Transaction__c"
 ];
+const WESHARE_ORG_IDS = [
+  "stmonicamoraga",
+  "stjohnthebaptistcostamesa",
+  "lovebuildshope",
+  "maryimmaculatechurch",
+  "bellarminechapel",
+  "stmichaelcanton",
+  "stgertrude",
+  "holynamenyc",
+  "wg-sthenryaverillpark",
+  "Blessedsacrament-sandiego",
+  "holyapostlesmeridian",
+  "ctkparish",
+  "cathedralolph",
+  "catholicsteamboat",
+  "stanthony-sthyacinth",
+  "stpetersboerne",
+  "motherofourredeemer",
+  "st-rita",
+  "stpetermadison",
+  "mygoodshepherd",
+  "saintjohncathedrallafayette",
+  "stmatthewhillsboro",
+  "scd",
+  "worldwidehealinghand",
+  "stcolmanchurch",
+  "holytrinitycohoes",
+  "localnewsinitiative",
+  "stannlenox",
+  "stpiusxportland",
+  "stanselmstl"
+];
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
 
 const getRecords = async (object) => {
   console.log(`Started querying for ${object} records...`);
 
+  const connection = auth();
   const result = [];
   let offset = 0;
 
   while (true) {
-    const records = await CONNECTION.sobject(object)
+    const records = await connection
+      .sobject(object)
       .find()
       .limit(MAX_RECORDS_IN_SINGLE_SOQL_QUERY)
       .skip(offset)
@@ -50,7 +84,7 @@ const getRecords = async (object) => {
   return result;
 };
 
-const generateCSV = async (object) => {
+const generateCSV = async (alias, object) => {
   console.log(`Started generating CSV for ${object} table...`);
 
   const records = await getRecords(object);
@@ -61,7 +95,7 @@ const generateCSV = async (object) => {
     const createCsvWriter = require("csv-writer").createObjectCsvWriter;
 
     const csvWriter = createCsvWriter({
-      path: `./${RESULTS_DIRECTORY}/${object}.csv`,
+      path: `./${RESULTS_DIRECTORY}/${alias}_${object}.csv`,
       header: Object.keys(records[0])
         .filter((key) => {
           return key !== "attributes";
@@ -102,11 +136,21 @@ const emptyDirectory = () => {
   });
 };
 
+const setDefaultOrg = (alias) => {
+  console.log(`Setting default org: ${alias}`);
+
+  executeScript(`sfdx config:set defaultusername=${alias}`);
+};
+
 const execute = async () => {
   emptyDirectory();
 
-  for (const object of OBJECTS_TO_EXPORT) {
-    await generateCSV(object);
+  for (const alias of WESHARE_ORG_IDS) {
+    setDefaultOrg(alias);
+
+    for (const object of OBJECTS_TO_EXPORT) {
+      await generateCSV(alias, object);
+    }
   }
 };
 
