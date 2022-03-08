@@ -50,7 +50,25 @@ const WESHARE_ORG_IDS = [
   "localnewsinitiative",
   "stannlenox",
   "stpiusxportland",
-  "stanselmstl"
+  "stanselmstl",
+  "northadamscatholics",
+  "birdrescuecenter",
+  "sariverdale",
+  "stedward",
+  "holytrinityparish",
+  "stmarygrinnell",
+  "stignatiussac",
+  "fivesaintscommunitystcecelia",
+  "stmary-strobert2",
+  "stmary-strobert",
+  "twocountrysaints",
+  "stfranciskrcatholics",
+  "stpaulgenesee",
+  "stmarysgi",
+  "saintbrigidparish",
+  "corpuschristi-phoenix",
+  "archseattle",
+  "sjbplymouth"
 ];
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
