@@ -1,4 +1,4 @@
-// npm run export:data
+// node --max-old-space-size=8192 ./scripts/node/exportData.js
 
 const fs = require("fs");
 const { auth, executeScript } = require("./scriptUtils");
@@ -73,6 +73,54 @@ const WESHARE_ORG_IDS = [
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
 
+const getFields = (connection, object) => {
+  return new Promise((resolve, reject) => {
+    connection.sobject(object).describe((error, meta) => {
+      if (error) {
+        reject(error);
+      }
+      const compoundFieldNames = Array.from(
+        new Set(
+          meta.fields
+            .filter((field) => {
+              return field.compoundFieldName !== null;
+            })
+            .map((field) => {
+              return field.compoundFieldName;
+            })
+        )
+      );
+      const fields = meta.fields
+        .map((field) => {
+          return field.name;
+        })
+        .filter((field) => {
+          return !compoundFieldNames.includes(field);
+        });
+
+      resolve(fields);
+    });
+  });
+};
+
+const getRecordsBulk = (connection, object, fields) => {
+  return new Promise((resolve, reject) => {
+    const result = [];
+
+    connection.bulk
+      .query(`SELECT ${fields.join(", ")} FROM ${object}`)
+      .on("record", (record) => {
+        result.push(record);
+      })
+      .on("error", (error) => {
+        reject(error);
+      })
+      .on("end", () => {
+        resolve(result);
+      });
+  });
+};
+
 const getRecords = async (connection, object) => {
   console.log(`Started querying for ${object} records...`);
 
@@ -104,7 +152,19 @@ const getRecords = async (connection, object) => {
 const generateCSV = async (alias, connection, object) => {
   console.log(`Started generating CSV for ${object} table...`);
 
-  const records = await getRecords(connection, object);
+  const fields = await getFields(connection, object);
+  let records;
+
+  for (let i = 0; i < 10 && !records; i++) {
+    try {
+      records = await getRecordsBulk(connection, object, fields);
+    } catch (error) {
+      if (i === 9) {
+        console.error(error);
+        throw new Error("Failed to get records");
+      }
+    }
+  }
 
   console.log(`Found a total of ${records.length} ${object} records...`);
 
@@ -166,12 +226,12 @@ const execute = async () => {
     setDefaultOrg(alias);
 
     const connection = auth(alias);
+    connection.bulk.pollInterval = 5000;
+    connection.bulk.pollTimeout = 1800000;
 
-    await Promise.all(
-      OBJECTS_TO_EXPORT.map((object) => {
-        return generateCSV(alias, connection, object);
-      })
-    );
+    OBJECTS_TO_EXPORT.map((object) => {
+      return generateCSV(alias, connection, object);
+    });
   }
 };
 
