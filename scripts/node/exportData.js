@@ -8,6 +8,7 @@ const OBJECTS_TO_EXPORT = [
   "Organization",
   "Account",
   "Contact",
+  "User",
   "WeGather__Batch__c",
   "WeGather__Fee2__c",
   "WeGather__Financial_Account__c",
