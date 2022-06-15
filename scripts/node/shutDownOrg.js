@@ -11,7 +11,9 @@ const {
 const execute = async () => {
   //bellarminechapel
   //stpetersboerne
-  const thisOrg = "bellarminechapel"; //TODO
+  //demo-pe-christservantparish   STAGING ORG
+  const thisOrg = process.argv[2];
+  console.log("Shutting down " + thisOrg + "...");
   const connection = auth(thisOrg);
   connection.bulk.pollInterval = 5000;
   connection.bulk.pollTimeout = 1800000;

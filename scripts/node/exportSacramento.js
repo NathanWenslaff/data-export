@@ -14,13 +14,9 @@ const execute = async () => {
   connection.bulk.pollInterval = 5000;
   connection.bulk.pollTimeout = 1800000;
   const objectsInOrg = await getObjectsInOrg(connection);
-  console.log(objectsInOrg.length);
   const objectsToExport = [];
 
-  let i = 1;
   for (const thisObject of objectsInOrg) {
-    console.log(i);
-    i++;
     const shouldExport = await shouldExportObject(connection, thisObject);
     if (shouldExport) {
       console.log("Added object: " + thisObject);
@@ -56,6 +52,8 @@ const shouldExportObject = (connection, thisObject) => {
     } else if (thisObject.includes("__mdt")) {
       resolve(false);
     } else if (thisObject.includes("Share")) {
+      resolve(false);
+    } else if (thisObject.includes("ChangeEvent")) {
       resolve(false);
     } else if (
       thisObject.includes("__c") &&
