@@ -11,8 +11,6 @@ const {
 } = require("./scriptUtils");
 
 const execute = async () => {
-  //bellarminechapel
-  //stpetersboerne
   //demo-pe-christservantparish   STAGING ORG
   const thisOrg = process.argv[2];
   console.log("Shutting down " + thisOrg + "...");
@@ -21,8 +19,6 @@ const execute = async () => {
   connection.bulk.pollTimeout = 1800000;
   let finished = false;
   let numberOfRounds = 1;
-
-  //TODO: Switch to system email only
 
   console.log("Deactivating users...");
   while (!finished) {
@@ -75,27 +71,6 @@ const execute = async () => {
       await deleteScheduledTransactions(connection, scheduledTransactions);
     }
   }
-
-  //TODO: Delete scheduled jobs
-
-  // console.log("Deleting scheduled jobs...");
-  // finished = false;
-  // numberOfRounds = 1;
-  // while (!finished) {
-  //     const queryResults = await getScheduledJobs(connection);
-  //     const scheduledJobs = queryResults.records;
-  //     if (scheduledTransactions.length === 0) {
-  //         console.log("No more scheduled jobs found.");
-  //         finished = true;
-  //     }
-  //     else {
-  //         console.log(`${numberOfRounds}: Found ${scheduledTransactions.length} transactions to delete. Attempting to delete...`);
-  //         ++numberOfRounds;
-  //         await deleteScheduledTransactions(connection, scheduledTransactions);
-  //     }
-  // }
-
-  //TODO: Disable sites
 };
 
 const getUsersToDeactivate = (connection) => {
