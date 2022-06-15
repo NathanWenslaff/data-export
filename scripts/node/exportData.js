@@ -111,7 +111,14 @@ const getRecordsBulk = (connection, object, fields) => {
     connection.bulk
       .query(`SELECT ${fields.join(", ")} FROM ${object}`)
       .on("record", (record) => {
-        result.push(record);
+        if (object === "Account") {
+          result.push({
+            ...record,
+            WeGather__Envelope__c: record.AccountNumber
+          });
+        } else {
+          result.push(record);
+        }
       })
       .on("error", (error) => {
         reject(error);
@@ -120,34 +127,6 @@ const getRecordsBulk = (connection, object, fields) => {
         resolve(result);
       });
   });
-};
-
-const getRecords = async (connection, object) => {
-  console.log(`Started querying for ${object} records...`);
-
-  const result = [];
-  let offset = 0;
-
-  while (true) {
-    const records = await connection
-      .sobject(object)
-      .find()
-      .limit(MAX_RECORDS_IN_SINGLE_SOQL_QUERY)
-      .skip(offset)
-      .execute();
-
-    result.push(...records);
-
-    if (records.length < MAX_RECORDS_IN_SINGLE_SOQL_QUERY) {
-      break;
-    } else {
-      console.log(`Found ${result.length} ${object} records so far...`);
-      offset += MAX_RECORDS_IN_SINGLE_SOQL_QUERY;
-    }
-  }
-
-  console.log(`Finished querying for ${object} records...`);
-  return result;
 };
 
 const generateCSV = async (alias, connection, object) => {
@@ -230,9 +209,11 @@ const execute = async () => {
     connection.bulk.pollInterval = 5000;
     connection.bulk.pollTimeout = 1800000;
 
-    OBJECTS_TO_EXPORT.map((object) => {
-      return generateCSV(alias, connection, object);
-    });
+    await Promise.all(
+      OBJECTS_TO_EXPORT.map((object) => {
+        return generateCSV(alias, connection, object);
+      })
+    );
   }
 };
 
