@@ -2,14 +2,10 @@
 
 const {
   auth,
-  executeScript,
-  getRecordsBulk,
   generateCSV,
   emptyDirectory,
-  setDefaultOrg,
-  getFields
+  setDefaultOrg
 } = require("./scriptUtils");
-const path = require("path");
 
 const OBJECTS_TO_EXPORT = [
   "Organization",
@@ -78,8 +74,6 @@ const WESHARE_ORG_IDS = [
   "archseattle",
   "sjbplymouth"
 ];
-const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
-const RESULTS_DIRECTORY = "results";
 
 const execute = async () => {
   emptyDirectory();
@@ -91,9 +85,11 @@ const execute = async () => {
     connection.bulk.pollInterval = 5000;
     connection.bulk.pollTimeout = 1800000;
 
-    OBJECTS_TO_EXPORT.map((object) => {
-      return generateCSV(alias, connection, object);
-    });
+    await Promise.all(
+      OBJECTS_TO_EXPORT.map((object) => {
+        return generateCSV(alias, connection, object);
+      })
+    );
   }
 };
 

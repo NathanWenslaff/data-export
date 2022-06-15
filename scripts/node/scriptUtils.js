@@ -36,6 +36,36 @@ const auth = () => {
   });
 };
 
+const getFields = (connection, object) => {
+  return new Promise((resolve, reject) => {
+    connection.sobject(object).describe((error, meta) => {
+      if (error) {
+        reject(error);
+      }
+      const compoundFieldNames = Array.from(
+        new Set(
+          meta.fields
+            .filter((field) => {
+              return field.compoundFieldName !== null;
+            })
+            .map((field) => {
+              return field.compoundFieldName;
+            })
+        )
+      );
+      const fields = meta.fields
+        .map((field) => {
+          return field.name;
+        })
+        .filter((field) => {
+          return !compoundFieldNames.includes(field);
+        });
+
+      resolve(fields);
+    });
+  });
+};
+
 const getRecordsBulk = (connection, object, fields) => {
   return new Promise((resolve, reject) => {
     const result = [];
@@ -43,7 +73,14 @@ const getRecordsBulk = (connection, object, fields) => {
     connection.bulk
       .query(`SELECT ${fields.join(", ")} FROM ${object}`)
       .on("record", (record) => {
-        result.push(record);
+        if (object === "Account") {
+          result.push({
+            ...record,
+            WeGather__Envelope__c: record.AccountNumber
+          });
+        } else {
+          result.push(record);
+        }
       })
       .on("error", (error) => {
         reject(error);
@@ -64,9 +101,6 @@ const generateCSV = async (alias, connection, object) => {
     try {
       records = await getRecordsBulk(connection, object, fields);
     } catch (error) {
-      if (error.errorCode === "InvalidEntity") {
-        records = [];
-      }
       if (i === 9) {
         console.error(error);
         throw new Error("Failed to get records");
@@ -118,39 +152,6 @@ const emptyDirectory = () => {
         }
       });
     }
-  });
-};
-
-const getFields = (connection, object) => {
-  return new Promise((resolve, reject) => {
-    connection.sobject(object).describe((error, meta) => {
-      if (error) {
-        reject(error);
-      }
-      if (!meta) {
-        console.log(object);
-      }
-      const compoundFieldNames = Array.from(
-        new Set(
-          meta.fields
-            .filter((field) => {
-              return field.compoundFieldName !== null;
-            })
-            .map((field) => {
-              return field.compoundFieldName;
-            })
-        )
-      );
-      const fields = meta.fields
-        .map((field) => {
-          return field.name;
-        })
-        .filter((field) => {
-          return !compoundFieldNames.includes(field);
-        });
-
-      resolve(fields);
-    });
   });
 };
 
