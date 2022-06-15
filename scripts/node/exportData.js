@@ -1,7 +1,14 @@
 // node --max-old-space-size=8192 ./scripts/node/exportData.js
 
-const fs = require("fs");
-const { auth, executeScript } = require("./scriptUtils");
+const {
+  auth,
+  executeScript,
+  getRecordsBulk,
+  generateCSV,
+  emptyDirectory,
+  setDefaultOrg,
+  getFields
+} = require("./scriptUtils");
 const path = require("path");
 
 const OBJECTS_TO_EXPORT = [
@@ -73,152 +80,6 @@ const WESHARE_ORG_IDS = [
 ];
 const MAX_RECORDS_IN_SINGLE_SOQL_QUERY = 50000;
 const RESULTS_DIRECTORY = "results";
-
-const getFields = (connection, object) => {
-  return new Promise((resolve, reject) => {
-    connection.sobject(object).describe((error, meta) => {
-      if (error) {
-        reject(error);
-      }
-      const compoundFieldNames = Array.from(
-        new Set(
-          meta.fields
-            .filter((field) => {
-              return field.compoundFieldName !== null;
-            })
-            .map((field) => {
-              return field.compoundFieldName;
-            })
-        )
-      );
-      const fields = meta.fields
-        .map((field) => {
-          return field.name;
-        })
-        .filter((field) => {
-          return !compoundFieldNames.includes(field);
-        });
-
-      resolve(fields);
-    });
-  });
-};
-
-const getRecordsBulk = (connection, object, fields) => {
-  return new Promise((resolve, reject) => {
-    const result = [];
-
-    connection.bulk
-      .query(`SELECT ${fields.join(", ")} FROM ${object}`)
-      .on("record", (record) => {
-        result.push(record);
-      })
-      .on("error", (error) => {
-        reject(error);
-      })
-      .on("end", () => {
-        resolve(result);
-      });
-  });
-};
-
-const getRecords = async (connection, object) => {
-  console.log(`Started querying for ${object} records...`);
-
-  const result = [];
-  let offset = 0;
-
-  while (true) {
-    const records = await connection
-      .sobject(object)
-      .find()
-      .limit(MAX_RECORDS_IN_SINGLE_SOQL_QUERY)
-      .skip(offset)
-      .execute();
-
-    result.push(...records);
-
-    if (records.length < MAX_RECORDS_IN_SINGLE_SOQL_QUERY) {
-      break;
-    } else {
-      console.log(`Found ${result.length} ${object} records so far...`);
-      offset += MAX_RECORDS_IN_SINGLE_SOQL_QUERY;
-    }
-  }
-
-  console.log(`Finished querying for ${object} records...`);
-  return result;
-};
-
-const generateCSV = async (alias, connection, object) => {
-  console.log(`Started generating CSV for ${object} table...`);
-
-  const fields = await getFields(connection, object);
-  let records;
-
-  for (let i = 0; i < 10 && !records; i++) {
-    try {
-      records = await getRecordsBulk(connection, object, fields);
-    } catch (error) {
-      if (i === 9) {
-        console.error(error);
-        throw new Error("Failed to get records");
-      }
-    }
-  }
-
-  console.log(`Found a total of ${records.length} ${object} records...`);
-
-  if (records.length > 0) {
-    const createCsvWriter = require("csv-writer").createObjectCsvWriter;
-
-    const csvWriter = createCsvWriter({
-      path: `./${RESULTS_DIRECTORY}/${alias}_${object}.csv`,
-      header: Object.keys(records[0])
-        .filter((key) => {
-          return key !== "attributes";
-        })
-        .map((key) => {
-          return {
-            id: key,
-            title: key
-          };
-        })
-    });
-
-    if (!fs.existsSync(RESULTS_DIRECTORY)) {
-      fs.mkdirSync(RESULTS_DIRECTORY, { recursive: true });
-    }
-
-    await csvWriter.writeRecords(records);
-
-    console.log(`Finished generating CSV for ${object} object...`);
-  }
-};
-
-const emptyDirectory = () => {
-  console.log("Deleting old CSV files...");
-
-  fs.readdir(RESULTS_DIRECTORY, (err, files) => {
-    if (err) {
-      throw err;
-    }
-
-    for (const file of files) {
-      fs.unlink(path.join(RESULTS_DIRECTORY, file), (err) => {
-        if (err) {
-          throw err;
-        }
-      });
-    }
-  });
-};
-
-const setDefaultOrg = (alias) => {
-  console.log(`Setting default org: ${alias}`);
-
-  executeScript(`sfdx config:set defaultusername=${alias}`);
-};
 
 const execute = async () => {
   emptyDirectory();
