@@ -1,3 +1,5 @@
+// node ./scripts/node/shutDownOrg.js [WeShare Org ID]
+
 const {
   auth,
   executeScript,
