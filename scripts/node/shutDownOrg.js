@@ -75,7 +75,6 @@ const execute = async () => {
   console.log("Deactivating funds...");
   finished = false;
   numberOfRounds = 1;
-  shutDownDate = new Date(2022, 5, 30, 12);
   while (!finished) {
     const queryResults = await getFunds(connection);
     const funds = queryResults.records;
@@ -83,7 +82,7 @@ const execute = async () => {
       console.log(
         `${numberOfRounds}: Found ${funds.length} funds to deactivate. Attempting to deactivate...`
       );
-      await makeFundsInactive(connection, funds, shutDownDate);
+      await makeFundsInactive(connection, funds);
       ++numberOfRounds;
     } else {
       console.log("All funds deactivated.");
@@ -216,7 +215,7 @@ const getFunds = (connection) => {
   });
 };
 
-const makeFundsInactive = (connection, listOfFunds, date) => {
+const makeFundsInactive = (connection, listOfFunds) => {
   return new Promise((resolve, reject) => {
     connection.sobject("WeGather__Fund__c").update(
       listOfFunds.map(function (thisFund) {
