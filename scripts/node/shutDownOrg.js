@@ -71,6 +71,30 @@ const execute = async () => {
       await deleteScheduledTransactions(connection, scheduledTransactions);
     }
   }
+
+  console.log("Deactivating funds...");
+  finished = false;
+  numberOfRounds = 1;
+  while (!finished) {
+    const queryResults = await getFunds(connection);
+    const funds = queryResults.records;
+    if (funds.length !== 0) {
+      console.log(
+        `${numberOfRounds}: Found ${funds.length} funds to deactivate. Attempting to deactivate...`
+      );
+      await makeFundsInactive(connection, funds);
+      ++numberOfRounds;
+    } else {
+      console.log("All funds deactivated.");
+      finished = true;
+    }
+  }
+
+  console.log("Deleting scheduled jobs...");
+  executeScript(
+    "sfdx force:apex:execute -f ./scripts/apex/deleteScheduledJobs.apex"
+  );
+  console.log("All scheduled jobs deleted.");
 };
 
 const getUsersToDeactivate = (connection) => {
@@ -175,17 +199,34 @@ const deleteScheduledTransactions = (connection, scheduledTransactions) => {
   });
 };
 
-const getScheduledJobs = (connection) => {
+const getFunds = (connection) => {
   return new Promise((resolve, reject) => {
     connection.query(
-      "SELECT COUNT() FROM CronTrigger Limit 10",
+      "SELECT Id FROM WeGather__Fund__c WHERE WeGather__Available_for_Payments__c = True Limit 50",
       function (err, result) {
         if (err) {
-          console.error("Failed to get scheduled jobs: ", err);
+          console.error("Failed to get scheduled transactions: ", err);
           reject(err);
         } else if (result) {
-          console.log(result);
           resolve(result);
+        }
+      }
+    );
+  });
+};
+
+const makeFundsInactive = (connection, listOfFunds) => {
+  return new Promise((resolve, reject) => {
+    connection.sobject("WeGather__Fund__c").update(
+      listOfFunds.map(function (thisFund) {
+        return { Id: thisFund.Id, WeGather__Available_for_Payments__c: false };
+      }),
+      function (err, results) {
+        if (err) {
+          console.error("Failed to deactivate fund: ", err);
+          reject(err);
+        } else if (results) {
+          resolve(results);
         }
       }
     );
