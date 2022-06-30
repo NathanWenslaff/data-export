@@ -21,18 +21,26 @@ const execute = async () => {
   let numberOfRounds = 1;
 
   console.log("Deactivating users...");
-  while (!finished) {
-    const queryResults = await getUsersToDeactivate(connection);
-    const usersToDeactivate = queryResults.records;
-    if (usersToDeactivate.length === 0) {
-      console.log("No more users found.");
-      finished = true;
-    } else {
-      console.log(
-        `${numberOfRounds}: Found ${usersToDeactivate.length} Users to deactivate. Attempting to deactivate...`
-      );
-      ++numberOfRounds;
-      await makeUsersInactive(connection, usersToDeactivate);
+  const adminQuery = await verifyAdminUser(connection);
+  const adminUsers = adminQuery.records;
+  if (adminUsers.length === 0) {
+    console.log(
+      "Warning: Admin user with email 'mb-sfdc_admin@ministrybrands.com' was not found. Users will remain active."
+    );
+  } else {
+    while (!finished) {
+      const queryResults = await getUsersToDeactivate(connection);
+      const usersToDeactivate = queryResults.records;
+      if (usersToDeactivate.length === 0) {
+        console.log("No more users found.");
+        finished = true;
+      } else {
+        console.log(
+          `${numberOfRounds}: Found ${usersToDeactivate.length} Users to deactivate. Attempting to deactivate...`
+        );
+        ++numberOfRounds;
+        await makeUsersInactive(connection, usersToDeactivate);
+      }
     }
   }
 
@@ -97,10 +105,26 @@ const execute = async () => {
   console.log("All scheduled jobs deleted.");
 };
 
+const verifyAdminUser = (connection) => {
+  return new Promise((resolve, reject) => {
+    connection.query(
+      "SELECT Id FROM User WHERE Email = 'mb-sfdc_admin@ministrybrands.com'",
+      function (err, result) {
+        if (err) {
+          console.error("Failed to get users: ", err);
+          reject(err);
+        } else if (result) {
+          resolve(result);
+        }
+      }
+    );
+  });
+};
+
 const getUsersToDeactivate = (connection) => {
   return new Promise((resolve, reject) => {
     connection.query(
-      "SELECT Id FROM User WHERE UserType = 'CspLitePortal' AND IsActive = True Limit 50",
+      "SELECT Id, Name FROM User WHERE Email != 'mb-sfdc_admin@ministrybrands.com' AND IsActive = True AND UserType IN ('Standard', 'CSPLitePortal') Limit 50",
       function (err, result) {
         if (err) {
           console.error("Failed to get users: ", err);
